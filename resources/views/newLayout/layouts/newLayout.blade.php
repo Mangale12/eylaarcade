@@ -717,32 +717,32 @@ body {
                                   {{-- <li>New New 3</li> --}}
                                 </ul>
                                 @endif
-                                <liclass="nav-item">
+                                {{-- <liclass="nav-item">
                                     <a href="{{ route('missingUser') }}" class="nav-link"> <div
                                       class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
                                       <i class="fa fa-circle-o text-warning text-sm opacity-10"></i>
                                   </div>
                                   <span class="nav-link-text ms-1">Missing User</span></a>
-                                </li>
+                                </li> --}}
                                 
-                                <liclass="nav-item">
+                                {{-- <liclass="nav-item">
                                     <a href="{{ route('admin.coin-address.index') }}" class="nav-link"> <div
                                       class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
                                       <i class="fa fa-circle-o text-warning text-sm opacity-10"></i>
                                   </div>
                                   <span class="nav-link-text ms-1">Coin Addresses</span></a>
-                                </li>
+                                </li> --}}
                                 
                                 
-                                <li  data-toggle="collapse" data-target="#bit-coin" class="collapsed  nav-item">
+                                {{-- <li  data-toggle="collapse" data-target="#bit-coin" class="collapsed  nav-item">
                                     <a href="#" class="nav-link {{ Route::is('user.create','user.edit','user.index') ? 'active' : '' }}"> <div
                                       class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
                                       <i class="fa fa-circle-o text-warning text-sm opacity-10"></i>
                                   </div>
                                   <span class="nav-link-text ms-1">Bit Coin Setup</span> <span class="arrow"></span></a>
-                                </li>
+                                </li> --}}
 
-                                <ul class="sub-menu collapse" id="bit-coin">
+                                {{-- <ul class="sub-menu collapse" id="bit-coin">
                                     <li class="nav-item">
                                         <a class="nav-link {{ request()->segment(2) == 'admin.coin-address.index' ? 'active' : '' }}"
                                             href="{{ route('admin.coin-address.index') }}">
@@ -763,44 +763,11 @@ body {
                                             <span class="nav-link-text ms-1">Network Setup</span>
                                         </a>
                                     </li>
-                             {{-- <li>
-                              <a href="#">
-                              <i class="fa fa-user fa-lg"></i> Profile
-                              </a>
-                              </li>
-
-                             <li>
-                              <a href="#">
-                              <i class="fa fa-users fa-lg"></i> Users
-                              </a>
-                            </li> --}}
-                        </ul>
+                             
+                            </ul> --}}
                  </div>
             </div>
-            <ul class="navbar-nav">
-                 @if (Auth::user()->role == 'admin')
-                 <li class="nav-item">
-                    <a class="nav-link" href="{{ route('testmassMail') }}">
-                        <div
-                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                            
-                        </div>
-                        <span class="nav-link-text ms-1">Test Bulk Mail</span>
-                    </a>
-                </li> 
-                
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('noorJanActiveUsers') }}">
-                        <div
-                            class="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-                            
-                        </div>
-                        <span class="nav-link-text ms-1">Noor Jan Active Users</span>
-                    </a>
-                </li> 
-                @endif
-
-            </ul>
+            
         </div>
         <style>
             .date-countdown {

@@ -1120,126 +1120,104 @@ public function tableop()
 
     }
 
-  public function spinner()
-    {
-        // Set the comparison amount for filtering players
-       
-        $compare_amount = $this->limit_amount;
-    
-        try {
-            // Get the current year and calculate the previous month
-            $year = date('Y');
-            $month = date('m') != 1 ? date('m') - 1 : 12;
-            $year = ($month == 12) ? $year - 1 : $year;
-            $month = str_pad($month, 2, '0', STR_PAD_LEFT);
-    
-            // Set the filter range for the previous month's start and end dates
-            $filter_start = "{$year}-{$month}-01";
-            $filter_end = date("Y-m-t", strtotime($filter_start));
-    
-            // Fetch history records where amount was loaded within the previous month
-            $historys = History::where('type', 'load')
-                                ->whereBetween('created_at', [$filter_start, $filter_end])
-                                ->select([DB::raw("SUM(amount_loaded) as total"), 'form_id'])
-                                ->groupBy('form_id')
-                                ->with('form')
-                                ->whereHas('form')
-                                ->get();
-    
-            // Get the count of winners for the previous month
-            $winners_list = SpinnerWinner::whereBetween('created_at', [$filter_start, $filter_end])->count();
-    
-            // Prepare the final result array
-            $final = [
-                'players_list' => [],
-                'winner_info' => []
-            ];
-    
-            // If there are any history records
-            if ($historys->count() > 0) {
-                foreach ($historys as $history) {
-                    if ($history->total >= $compare_amount) {
-                        $final['players_list'][] = [
-                            'player_name' => $history->form->full_name,
-                            'player_id' => $history->form_id
-                        ];
-                    }
-                }
-    
-                // If eligible players are found
-                if (!empty($final['players_list'])) {
-                    $random_player_index = array_rand($final['players_list']);
-                    $selected_player = $final['players_list'][$random_player_index];
-    
-                    // If no winner has been selected for the previous month, create a new one
-                    if ($winners_list <= 0) {
-                        $f1 = Form::find($selected_player['player_id']);
-                        $winner = SpinnerWinner::create([
-                            'form_id' => $selected_player['player_id'],
-                            'full_name' => $f1->full_name,
-                            'created_at' => $filter_start,
-                        ]);
-                    } else {
-                        // If a winner already exists for the previous month, fetch it
-                        $winner = SpinnerWinner::whereBetween('created_at', [$filter_start, $filter_end])->first();
-                    }
-    
-                    // Set winner information
-                    $final['winner_info'] = [
-                        'player_name' => $winner->full_name,
-                        'player_id' => $winner->form_id
-                    ];
-                }
-    
-                // Special case for "Prasun Dahal"
-                if (strtotime(date('Y-m-d')) == strtotime(date("{$year}-04-16"))) {
-                    $prasun = Form::where('full_name', 'Prasun Dahal')->first();
-                    if ($prasun) {
-                        $final['players_list'][] = [
-                            'player_name' => $prasun->full_name,
-                            'player_id' => $prasun->id
-                        ];
-    
-                        $final['winner_info'] = [
-                            'player_name' => $prasun->full_name,
-                            'player_id' => $prasun->id
-                        ];
-                    }
-                }
-            }
-    
-            // Fetch old winners, excluding those from the current or previous month
-            $old_winners = SpinnerWinner::limit(5)->get();
-            $month = intval(date('m'));
-            $old_list = $old_winners->filter(function ($winner) use ($month) {
-                $winner_month = intval(date('m', strtotime($winner->created_at)));
-                return !in_array($winner_month, [$month, $month - 1]);
-            })->values()->toArray();
-    
-            // Fetch settings and current date
-            $settings = \App\Models\GeneralSetting::first();
-            $carbon_now = Carbon::now();
-            
-            $formData = Form::get();
-            foreach($formData as $key => $data){
+    public function spinner()
+{
+    $compare_amount = $this->limit_amount;
+
+    try {
+        // Calculate last week's start (Monday) and end (Sunday)
+        $now = Carbon::now();
+        $startOfLastWeek = $now->copy()->subWeek()->startOfWeek(Carbon::MONDAY);
+        $endOfLastWeek = $startOfLastWeek->copy()->endOfWeek(Carbon::SUNDAY);
+
+        // Format dates
+        $filter_start = $startOfLastWeek->format('Y-m-d');
+        $filter_end = $endOfLastWeek->format('Y-m-d');
+
+        // Fetch eligible player history from last week
+        $histories = History::where('type', 'load')
+            ->whereBetween('created_at', [$filter_start, $filter_end])
+            ->select([DB::raw("SUM(amount_loaded) as total"), 'form_id'])
+            ->groupBy('form_id')
+            ->with('form')
+            ->whereHas('form')
+            ->get();
+
+        // Check if a winner already exists for the week
+        $winners_count = SpinnerWinner::whereBetween('created_at', [$filter_start, $filter_end])->count();
+
+        // Final result array
+        $final = [
+            'players_list' => [],
+            'winner_info' => []
+        ];
+
+        // Build player list who meet the threshold
+        foreach ($histories as $history) {
+            if ($history->total >= $compare_amount) {
                 $final['players_list'][] = [
-                            'player_name' => $data->full_name,
-                            'player_id' => $data->id
-                        ];
+                    'player_name' => $history->form->full_name,
+                    'player_id' => $history->form_id
+                ];
             }
-            $final['winner_info'] = [
-                            'player_name' => 'Maryannprive',
-                            'player_id' => 1361
-                        ];
-            
-            // Return the view with data
-            return view('spinner', compact('final', 'old_list', 'settings', 'carbon_now'));
-    
-        } catch (\Exception $e) {
-            // Handle exceptions and return an error response
-            return response()->json(['error' => $e->getMessage()], 404);
         }
+
+        // Spin a winner if players found
+        if (!empty($final['players_list'])) {
+            $random_player = $final['players_list'][array_rand($final['players_list'])];
+
+            if ($winners_count <= 0) {
+                $form = Form::find($random_player['player_id']);
+                $winner = SpinnerWinner::create([
+                    'form_id' => $form->id,
+                    'full_name' => $form->full_name,
+                    'created_at' => $filter_start,
+                ]);
+            } else {
+                $winner = SpinnerWinner::whereBetween('created_at', [$filter_start, $filter_end])->first();
+            }
+
+            $final['winner_info'] = [
+                'player_name' => $winner->full_name,
+                'player_id' => $winner->form_id
+            ];
+        }
+
+        // Optional: Special fixed winner for a specific weekly date (e.g., yearly promo)
+        if (Carbon::today()->eq(Carbon::create(null, 4, 16))) {
+            $prasun = Form::where('full_name', 'Prasun Dahal')->first();
+            if ($prasun) {
+                $final['players_list'][] = [
+                    'player_name' => $prasun->full_name,
+                    'player_id' => $prasun->id
+                ];
+                $final['winner_info'] = [
+                    'player_name' => $prasun->full_name,
+                    'player_id' => $prasun->id
+                ];
+            }
+        }
+
+        // Get old winners not from this or last week
+        $old_winners = SpinnerWinner::limit(5)->get();
+        $old_list = $old_winners->filter(function ($winner) use ($filter_start, $filter_end) {
+            $created = Carbon::parse($winner->created_at);
+            return !$created->between($filter_start, $filter_end);
+        })->values()->toArray();
+
+        // General settings
+        $settings = \App\Models\GeneralSetting::first();
+        $carbon_now = Carbon::now();
+
+        // Return view
+        return view('spinner', compact('final', 'old_list', 'settings', 'carbon_now'));
+
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 404);
     }
+}
+
+    
 
     public function userSpinnerLatest($token)
     {
@@ -4331,7 +4309,6 @@ $old=null;
             try
                 {
                     $input2 = self::getHistory($request->id);
-                    dd($input2);
                     foreach($input2 as $a => $input){
                     $form = Form::where('id', $input['form_id'])->first()->toArray();
                     $token_id = $form['token'];

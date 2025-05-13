@@ -370,7 +370,7 @@
     </div>
 
     <video autoplay muted loop id="bgVideo">
-        <source src="{{ asset('public/bg.webm') }}" type="video/webm"> <source src="bg.mp4" type="video/mp4"> Your browser does not support the video tag.
+        <source src="{{ asset('/bg.webm') }}" type="video/webm"> <source src="bg.mp4" type="video/mp4"> Your browser does not support the video tag.
     </video>
 </body>
 </html>
